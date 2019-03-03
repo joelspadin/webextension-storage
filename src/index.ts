@@ -1,5 +1,8 @@
 import { browser, Storage } from 'webextension-polyfill-ts';
 
+/**
+ * Names of the available browser storage areas.
+ */
 export type StorageAreaName = 'sync' | 'local' | 'managed';
 
 const STORAGE_AREAS: Record<StorageAreaName, Storage.StorageArea> = {
@@ -8,6 +11,9 @@ const STORAGE_AREAS: Record<StorageAreaName, Storage.StorageArea> = {
     'sync': browser.storage.sync,
 };
 
+/**
+ * Event data for a change in a stored value.
+ */
 export interface StorageChange<T> {
     /**
      * The old value of the item, if there was an old value.
@@ -22,21 +28,31 @@ export interface StorageChange<T> {
     newValue?: T;
 }
 
+/**
+ * Event listener for changes in stored values.
+ */
 export type StorageListener<T> = (change: StorageChange<T>, key: string) => void;
 
-/** Dictionary of setting keys and values. */
+/**
+ * Dictionary of setting keys and values.
+ */
 export interface IStorageItems {
     [key: string]: any;
 }
 
-/** Options for creating StorageArea objects. */
+/**
+ * Options for creating StorageArea objects.
+ */
 export interface IStorageAreaOptions<T extends IStorageItems> {
     /** Default values for all settings. */
     defaults: T;
+    /** The storage area in which settings should be stored. */
     storageArea?: StorageAreaName;
 }
 
-/** A property with get/set functions for one setting. */
+/**
+ * A property with get/set functions for one setting.
+ */
 export interface IStorageAccessor<T> {
     /** The key of the setting in storage. */
     readonly key: string;
@@ -56,23 +72,34 @@ export interface IStorageAccessor<T> {
     removeListener(callback: StorageListener<T>): void;
 }
 
-/** Creates an IStorageAccessor for each key in an ISettingItems. */
+/**
+ * Creates an IStorageAccessor for each key in an ISettingItems.
+ */
 export type IStorageAccessorProps<T extends IStorageItems> = {
     readonly [P in keyof T]: IStorageAccessor<T[P]>;
 }
 
-/** StorageArea<T> with accessor properties for each setting. */
+/**
+ * StorageArea<T> with accessor properties for each setting.
+ */
 export type IStorageArea<T extends IStorageItems> = StorageArea<T> & IStorageAccessorProps<T>;
 
 // TODO: remove casts once https://github.com/Microsoft/TypeScript/issues/1863 is fixed.
-/** Symbol for StorageArea._listeners to store a listener for any setting. */
+/**
+ * Symbol for StorageArea._listeners to store a listener for any setting.
+ */
 const AllSettings = Symbol('all settings') as unknown as string;
 
 /**
  * Wrapper around browser.storage that provides default values and typings for
  * each setting.
+ *
+ * Use StorageArea.create() to create a StorageArea instance.
  */
 export class StorageArea<T extends IStorageItems> {
+    /**
+     * The default setting values.
+     */
     public readonly defaults: T;
 
     private readonly _storage: Storage.StorageArea;
@@ -98,7 +125,9 @@ export class StorageArea<T extends IStorageItems> {
         browser.storage.onChanged.addListener(this._onChanged);
     }
 
-    /** Detach all event listeners, allowing the object to be freed. */
+    /**
+     * Detach all event listeners, allowing the object to be freed.
+     */
     public dispose() {
         browser.storage.onChanged.removeListener(this._onChanged);
 
@@ -109,16 +138,27 @@ export class StorageArea<T extends IStorageItems> {
         }
     }
 
-    /** Create a new storage area. */
+    /**
+     * Create a new storage area.
+     *
+     * A property of type IStorageAccessor will be created for each setting in
+     * options.defaults.
+     */
     public static create<T>(options: IStorageAreaOptions<T>): IStorageArea<T> {
         return new StorageArea(options) as IStorageArea<T>;
     }
 
     /** Get a dictionary containing all setting values. */
     public async get(): Promise<T>;
-    /** Get the value of a single setting. */
+    /**
+     * Get the value of a single setting.
+     * @param key The name of the setting.
+     */
     public async get<K extends keyof T>(key: K): Promise<T[K]>;
-    /** Get the value of a single setting. */
+    /**
+     * Get the value of a single setting.
+     * @param key The name of the setting.
+     */
     public async get(key: string): Promise<any>;
     public async get(key?: string) {
         if (key === undefined) {
@@ -146,17 +186,29 @@ export class StorageArea<T extends IStorageItems> {
         return this.set(unsetItems);
     }
 
-    /** Get whether a value is stored for a setting. */
+    /**
+     * Get whether a value is stored for a setting.
+     * @param key The name of the setting.
+     */
     public async isDefined<K extends keyof T>(key: K): Promise<boolean>;
-    /** Get whether a value is stored for a setting. */
+    /**
+     * Get whether a value is stored for a setting.
+     * @param key The name of the setting.
+     */
     public async isDefined(key: string): Promise<boolean>;
     public async isDefined(key: string) {
         return (await this.get(key)) !== undefined;
     }
 
-    /** Reset a setting to its default value. */
+    /**
+     * Reset a setting to its default value.
+     * @param key The name of the setting.
+     */
     public async reset<K extends keyof T>(key: K): Promise<void>;
-    /** Reset a setting to its default value. */
+    /**
+     * Reset a setting to its default value.
+     * @param key The name of the setting.
+     */
     public async reset(key: string): Promise<void>;
     public async reset(key: string) {
         if (key in this.defaults) {
@@ -166,16 +218,29 @@ export class StorageArea<T extends IStorageItems> {
         }
     }
 
-    /** Reset all settings to their default values. */
+    /**
+     * Reset all settings to their default values.
+     */
     public async resetAll(): Promise<void> {
         return this.set(this.defaults);
     }
 
-    /** Set the values of multiple settings. */
+    /**
+     * Set the values of multiple settings.
+     * @param items A dictionary of setting names and the new values to set.
+     */
     public async set(items: Partial<T>): Promise<void>;
-    /** Set the value of one setting. */
+    /**
+     * Set the value of one setting.
+     * @param key The name of the setting.
+     * @param value The new setting value.
+     */
     public async set<K extends keyof T>(key: K, value: T[K]): Promise<void>;
-    /** Set the value of one setting. */
+    /**
+     * Set the value of one setting.
+     * @param key The name of the setting.
+     * @param value The new setting value.
+     */
     public async set(key: string, value: any): Promise<void>;
     public async set(key: string | Partial<T>, value?: any) {
         let items: Partial<T>;
@@ -191,17 +256,36 @@ export class StorageArea<T extends IStorageItems> {
         return this._storage.set(items);
     }
 
+    /**
+     * Gets an IStorageAccessor for a setting.
+     * @param key The name of the setting.
+     */
     public accessor<K extends keyof T>(key: K): IStorageAccessor<T[K]>;
+    /**
+     * Gets an IStorageAccessor for a setting.
+     * @param key The name of the setting.
+     */
     public accessor(key: string): IStorageAccessor<any>;
     public accessor(key: string) {
         return this._accessors[key] || this._makeAccessor(key);
     }
 
-    /** Add a listener for changes to all settings. */
+    /**
+     * Add a listener for changes to all settings.
+     * @param callback A function to call when any setting is changed.
+     */
     public addListener(callback: StorageListener<any>): void;
-    /** Add a listener for changes to a setting. */
+    /**
+     * Add a listener for changes to a setting.
+     * @param key The name of the setting to listen to.
+     * @param callback A function to call when `key` is changed.
+     */
     public addListener<K extends keyof T>(key: K, callback: StorageListener<T[K]>): void;
-    /** Add a listener for changes to a setting. */
+    /**
+     * Add a listener for changes to a setting.
+     * @param key The name of the setting to listen to.
+     * @param callback A function to call when `key` is changed.
+     */
     public addListener(key: string, callback: StorageListener<any>): void;
     public addListener(a0: string | StorageListener<any>, a1?: StorageListener<any>) {
         const {key, callback} = this._getListenerArgs(a0, a1);
@@ -213,11 +297,22 @@ export class StorageArea<T extends IStorageItems> {
         }
     }
 
-    /** Remove a listener for changes to all settings. */
+    /**
+     * Remove a listener for changes to all settings.
+     * @param callback A function previously registered with `addListener(callback)`.
+     */
     public removeListener(callback: StorageListener<any>): void;
-    /** Remove a listener for changes to a setting. */
+    /**
+     * Remove a listener for changes to a setting.
+     * @param key The name of the setting to stop listening to.
+     * @param callback A function previously registered with `addListener(key, callback)`.
+     */
     public removeListener<K extends keyof T>(key: K, callback: StorageListener<T[K]>): void;
-    /** Remove a listener for changes to a setting. */
+    /**
+     * Remove a listener for changes to a setting.
+     * @param key The name of the setting to stop listening to.
+     * @param callback A function previously registered with `addListener(key, callback)`.
+     */
     public removeListener(key: string, callback: StorageListener<any>): void;
     public removeListener(a0: string | StorageListener<any>, a1?: StorageListener<any>) {
         const {key, callback} = this._getListenerArgs(a0, a1);
