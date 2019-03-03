@@ -1,0 +1,21 @@
+{
+  "name": "@spadin/webextension-storage",
+  "version": "1.0.0",
+  "description": "Helper for storing browser extension settings",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "relink": "npm link @spadin/tsconfig"
+  },
+  "author": "Joel Spadin <joelspadin@gmail.com>",
+  "license": "ISC",
+  "repository": "https://github.com/ChaosinaCan/webextension-storage",
+  "dependencies": {},
+  "devDependencies": {
+    "@spadin/tsconfig": "^1.0.0",
+    "typescript": "^3.3.3333",
+    "webextension-polyfill-ts": "^0.8.9"
+  }
+}
