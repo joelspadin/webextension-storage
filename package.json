@@ -1,6 +1,6 @@
 {
   "name": "@spadin/webextension-storage",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Helper for storing browser extension settings",
   "main": "dist/index.js",
   "scripts": {
@@ -10,7 +10,7 @@
     "relink": "npm link @spadin/tsconfig"
   },
   "author": "Joel Spadin <joelspadin@gmail.com>",
-  "license": "ISC",
+  "license": "MIT",
   "repository": "https://github.com/ChaosinaCan/webextension-storage",
   "dependencies": {},
   "devDependencies": {
