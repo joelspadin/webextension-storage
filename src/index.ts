@@ -6,9 +6,9 @@ import { browser, Storage } from 'webextension-polyfill-ts';
 export type StorageAreaName = 'sync' | 'local' | 'managed';
 
 const STORAGE_AREAS: Record<StorageAreaName, Storage.StorageArea> = {
-    'local': browser.storage.local,
-    'managed': browser.storage.managed,
-    'sync': browser.storage.sync,
+    local: browser.storage.local,
+    managed: browser.storage.managed,
+    sync: browser.storage.sync,
 };
 
 /**
@@ -77,7 +77,7 @@ export interface IStorageAccessor<T> {
  */
 export type IStorageAccessorProps<T extends IStorageItems> = {
     readonly [P in keyof T]: IStorageAccessor<T[P]>;
-}
+};
 
 /**
  * StorageArea<T> with accessor properties for each setting.
@@ -97,6 +97,16 @@ const AllSettings = Symbol('all settings') as unknown as string;
  * Use StorageArea.create() to create a StorageArea instance.
  */
 export class StorageArea<T extends IStorageItems> {
+    /**
+     * Create a new storage area.
+     *
+     * A property of type IStorageAccessor will be created for each setting in
+     * options.defaults.
+     */
+    public static create<T>(options: IStorageAreaOptions<T>): IStorageArea<T> {
+        return new StorageArea(options) as IStorageArea<T>;
+    }
+
     /**
      * The default setting values.
      */
@@ -131,21 +141,11 @@ export class StorageArea<T extends IStorageItems> {
     public dispose() {
         browser.storage.onChanged.removeListener(this._onChanged);
 
-        for (let key in this._listeners) {
+        for (const key in this._listeners) {
             if (this._listeners.hasOwnProperty(key)) {
                 delete this._listeners[key];
             }
         }
-    }
-
-    /**
-     * Create a new storage area.
-     *
-     * A property of type IStorageAccessor will be created for each setting in
-     * options.defaults.
-     */
-    public static create<T>(options: IStorageAreaOptions<T>): IStorageArea<T> {
-        return new StorageArea(options) as IStorageArea<T>;
     }
 
     /** Get a dictionary containing all setting values. */
@@ -174,10 +174,10 @@ export class StorageArea<T extends IStorageItems> {
      * Any setting values that are already stored will not be modified.
      */
     public async initDefaults(): Promise<void> {
-        let setItems = await this.get();
-        let unsetItems: Partial<T> = {};
+        const setItems = await this.get();
+        const unsetItems: Partial<T> = {};
 
-        for (let key in this.defaults) {
+        for (const key in this.defaults) {
             if (this.defaults.hasOwnProperty(key) && !(key in setItems)) {
                 unsetItems[key] = this.defaults[key];
             }
@@ -247,7 +247,7 @@ export class StorageArea<T extends IStorageItems> {
 
         if (typeof key === 'string') {
             // set one item.
-            items = <Partial<T>>{ [key]: value };
+            items = { [key]: value } as Partial<T>;
         } else {
             // set many items.
             items = key;
@@ -347,12 +347,13 @@ export class StorageArea<T extends IStorageItems> {
     }
 
     private _makeAccessor(key: string) {
-        let accessor: IStorageAccessor<any> = {
-            key: key,
+        const accessor: IStorageAccessor<any> = {
             default: this.defaults[key],
+            key,
 
             get: () => this.get(key),
             set: (value) => this.set(key, value),
+
             reset: () => this.reset(key),
 
             addListener: (callback) => this.addListener(key, callback),
@@ -364,13 +365,13 @@ export class StorageArea<T extends IStorageItems> {
     }
 
     private _makeProperties(): void {
-        let descriptors: PropertyDescriptorMap = {};
+        const descriptors: PropertyDescriptorMap = {};
 
-        for (let key in this.defaults) {
+        for (const key in this.defaults) {
             if (this.defaults.hasOwnProperty(key) && !this.hasOwnProperty(key)) {
                 descriptors[key] = {
-                    get: () => this.accessor(key),
                     enumerable: true,
+                    get: () => this.accessor(key),
                 };
             }
         }
@@ -379,7 +380,7 @@ export class StorageArea<T extends IStorageItems> {
     }
 
     private _onChanged = (changes: { [key: string]: Storage.StorageChange }, areaName: string) => {
-        if (areaName != this._storageName) {
+        if (areaName !== this._storageName) {
             return;
         }
 
@@ -389,13 +390,15 @@ export class StorageArea<T extends IStorageItems> {
             }
         }
 
-        for (let key in changes) {
-            if (key in this._listeners) {
-                _send(key, this._listeners[key]);
-            }
+        for (const key in changes) {
+            if (changes.hasOwnProperty(key)) {
+                if (key in this._listeners) {
+                    _send(key, this._listeners[key]);
+                }
 
-            if (AllSettings in this._listeners) {
-                _send(key, this._listeners[AllSettings]);
+                if (AllSettings in this._listeners) {
+                    _send(key, this._listeners[AllSettings]);
+                }
             }
         }
     }
