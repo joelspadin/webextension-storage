@@ -1,6 +1,6 @@
 {
   "name": "@spadin/webextension-storage",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Helper for storing browser extension settings",
   "main": "dist/index.js",
   "scripts": {
